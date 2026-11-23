@@ -17,7 +17,7 @@ import { SPOTS } from '../shared/types.js'
 import { validateAction } from '../shared/validate.js'
 import { Tracker, env } from './env.js'
 import { geminiImage, geminiReady, models } from './gemini.js'
-import { llmJSON, llmReady } from './llm.js'
+import { agentsPrefer, llmJSON, llmReady } from './llm.js'
 import { elevenReady, NARRATOR_VOICE, tts, voiceList } from './elevenlabs.js'
 import { mockBeat, mockCard, mockEnding, mockModel, mockOpening, mockShot } from './mockBrain.js'
 import { routeTask } from './router.js'
@@ -90,6 +90,7 @@ Return JSON:
  "color": "dominant hex color of the object"}`,
         images: [crop],
         temperature: 1,
+        prefer: agentsPrefer(),
       })
       return r
     },
@@ -186,6 +187,8 @@ Sizes: box [w,h,d], cylinder [radiusTop,radiusBottom,height], sphere [r], cone [
         temperature: 0.6,
         timeoutMs: 45000,
         effort: 'medium',
+        retries429: 1,
+        geminiConcurrency: 2,
       })
       return cleanModel(raw, shape, object, t.report['Gemini'] === 'live' ? 'gemini' : 'claude')
     },
@@ -245,6 +248,7 @@ ${myWhispers.join('\n')}
 Return {"action": "...", "target": "id or spot", "text": "...", "why": "one short sentence, max 20 words", "emotion": "one word"}`,
         temperature: 1.05,
         timeoutMs: 15000,
+        prefer: agentsPrefer(),
       })
       return validateAction(raw, character.id, castList, character.skill)
     },
@@ -280,6 +284,7 @@ ${weather ? `Real weather tonight: ${weather}.` : ''}
 ${rumors.length ? `Rumors from earlier tables: ${rumors.join(' | ')}` : ''}
 Write ONE opening event in max 30 words that creates a conflict over something scarce (e.g. "Midnight. One charger left. The cleaner arrives at 6 AM."). Return {"opening": "..."}`,
           temperature: 1,
+          prefer: agentsPrefer(),
         })
         return r.opening
       },
@@ -300,6 +305,7 @@ Decision log:
 ${log.map(logLine).join('\n')}
 Return {"winnerId": "id of the winner", "title": "a movie title, 2-5 words", "ending": "the last line of the film, max 30 words", "verdict": "why they won, citing specific beats, max 25 words, never mention coordinates or numbers like (0,0)"}`,
         temperature: 0.8,
+        prefer: agentsPrefer(),
       })
       if (!castList.some((c) => c.id === r.winnerId)) throw new Error('bad winner')
       return r
@@ -324,6 +330,7 @@ Shots: wide (whole table), closeup (face of subject), over_shoulder (behind subj
 Return {"type": "...", "subject": "character id or omit", "reason": "max 10 words"}`,
         temperature: 0.7,
         timeoutMs: 8000,
+        prefer: agentsPrefer(),
       })
       if (!['wide', 'closeup', 'over_shoulder', 'orbit'].includes(r.type)) throw new Error('bad shot')
       return r
@@ -427,6 +434,7 @@ Actual winner: ${name(castList, ending.winnerId)}. Log:
 ${log.map(logLine).join('\n')}
 Return {"pick": "character name the judge chose", "score": 0-10 how well the log supports them, "evidence": ["1-3 log beats that support or contradict them"], "verdict": "one sentence the characters will remember next run, e.g. 'A judge said Cold Brew was robbed.'"}`,
         temperature: 0.5,
+        prefer: agentsPrefer(),
       }),
     () => {
       const picked = castList.find((c) => answer.toLowerCase().includes(c.name.toLowerCase().split(' ')[0])) ?? castList[0]

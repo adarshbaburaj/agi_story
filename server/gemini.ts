@@ -1,4 +1,5 @@
 // Gemini: vision casting, Narrator, Cinematographer, agent beats, the 3D model builder and the poster.
+import { GoogleAuth } from 'google-auth-library'
 import { env, extractJson, parseDataUrl } from './env.js'
 
 const STUDIO = 'https://generativelanguage.googleapis.com/v1beta/models'
@@ -6,12 +7,29 @@ const STUDIO = 'https://generativelanguage.googleapis.com/v1beta/models'
 const keys = () => [env('GEMINI_API_KEY_4'), env('GEMINI_API_KEY_3'), env('GEMINI_API_KEY_2'), env('GEMINI_API_KEY'), env('GEMINI_API_KEY_1'), env('GOOGLE_API_KEY')].filter(Boolean) as string[]
 const useVertex = () => /^(1|true|yes)$/i.test(env('GOOGLE_GENAI_USE_VERTEXAI') ?? '')
 
-export const geminiReady = () => keys().length > 0 || !!env('GOOGLE_CLOUD_ACCESS_TOKEN')
+export const geminiReady = () =>
+  keys().length > 0 || !!env('GOOGLE_CLOUD_ACCESS_TOKEN') || (useVertex() && !!env('GOOGLE_CLOUD_PROJECT'))
+
+// Application Default Credentials (`gcloud auth application-default login`, or a service account on a server).
+// This is the route for organizations that disallow API keys.
+let adc: GoogleAuth | null = null
+let adcFailedAt = 0
+async function adcToken(): Promise<string | null> {
+  if (Date.now() - adcFailedAt < 60_000) return null
+  try {
+    adc ??= new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] })
+    return (await adc.getAccessToken()) ?? null
+  } catch (e) {
+    adcFailedAt = Date.now()
+    if (env('GEMINI_DEBUG')) console.warn('[Gemini ADC]', (e as Error).message.slice(0, 200))
+    return null
+  }
+}
 
 /** Endpoints to try in order: Vertex AI (token, then express-mode key), then AI Studio with each key. */
-function endpoints(model: string): { url: string; headers: Record<string, string> }[] {
+async function endpoints(model: string): Promise<{ url: string; headers: Record<string, string> }[]> {
   const out: { url: string; headers: Record<string, string> }[] = []
-  const token = env('GOOGLE_CLOUD_ACCESS_TOKEN')
+  const token = env('GOOGLE_CLOUD_ACCESS_TOKEN') ?? (useVertex() ? await adcToken() : null)
   const project = env('GOOGLE_CLOUD_PROJECT')
   const loc = env('GOOGLE_CLOUD_LOCATION') ?? 'global'
   const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`
@@ -63,7 +81,7 @@ async function call(opts: GeminiOpts, generationConfig: Record<string, unknown>)
     contents: [{ role: 'user', parts }],
     generationConfig,
   })
-  const eps = endpoints(opts.model)
+  const eps = await endpoints(opts.model)
   if (!eps.length) throw new Error('no Gemini credentials')
   // start with whichever endpoint worked last time
   const order = [...eps.slice(lastGood), ...eps.slice(0, lastGood)]

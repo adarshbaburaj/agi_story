@@ -15,7 +15,9 @@ Track 01 · Agent Animated Film
 5. **Ending**: the Narrator decides the winner **only from the decision log**. Losers tip over, the winner gets confetti and a poster.
 6. **Memory**: each run is saved (Bruin adapter + localStorage). Next run, every agent receives 2–3 rumors from earlier tables, and the audience interview verdict too, which changes their choices.
 
-Every model call goes Gemini → Claude → offline mock, so the film never breaks; the casting cards and sponsor panel show which one actually ran.
+Model routing: **Gemini (Hydrogen) builds the 3D toys** (one at a time, to respect its quota); the casting cards, agent beats, Narrator and Cinematographer run on Claude by default (`AGENTS_PROVIDER=gemini` sends them to Gemini first). Every call falls back Gemini ↔ Claude → offline mock, so the film never breaks; the casting cards and sponsor panel show which one actually ran.
+
+**Gemini auth:** if your Google Cloud organization disallows API keys, use Application Default Credentials: run `gcloud auth application-default login`, then set `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` (e.g. `global`). The server picks the login up automatically.
 
 ## Run locally
 
