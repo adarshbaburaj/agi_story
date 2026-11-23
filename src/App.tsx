@@ -28,6 +28,7 @@ export default function App() {
             <h1>
               AGI Story <small>After Hours · run #{run}</small>
             </h1>
+            {phase === 'thinking' && <div className="thinking-hud">🧠 {useFilm.getState().cast.length} agents deciding in parallel…</div>}
             {phase !== 'idle' && (
               <div className="shot">
                 🎥 {shot.type.replace('_', ' ')} <span>{shot.reason}</span>

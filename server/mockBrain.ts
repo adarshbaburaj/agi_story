@@ -83,7 +83,7 @@ export function mockBeat(self: CastSummary & { secretGoal?: string }, cast: Cast
 }
 
 export function mockOpening(cast: CastSummary[], weather: string | null) {
-  return `Midnight${weather ? `, ${weather} outside` : ''}. The humans are gone. ${cast.length} objects, one charger left, and the cleaner arrives at 6 AM.`
+  return `Midnight${weather ? `, ${weather} outside` : ''}. The humans are gone. ${cast.length} object${cast.length === 1 ? '' : 's'}, one charger left, and the cleaner arrives at 6 AM.`
 }
 
 export function mockEnding(cast: CastSummary[], log: LogEntry[], world: Pick<WorldState, 'positions' | 'alliances'>): Ending {

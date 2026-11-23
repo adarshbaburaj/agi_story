@@ -16,7 +16,8 @@ import type {
 import { SPOTS } from '../shared/types.js'
 import { validateAction } from '../shared/validate.js'
 import { Tracker, env } from './env.js'
-import { geminiImage, geminiJSON, geminiReady, models } from './gemini.js'
+import { geminiImage, geminiReady, models } from './gemini.js'
+import { llmJSON, llmReady } from './llm.js'
 import { elevenReady, NARRATOR_VOICE, tts, voiceList } from './elevenlabs.js'
 import { mockBeat, mockCard, mockEnding, mockModel, mockOpening, mockShot } from './mockBrain.js'
 import { routeTask } from './router.js'
@@ -37,19 +38,16 @@ import { runwareImage, runwareReady } from './sponsors/runware.js'
 type Body = Record<string, any>
 type Handler = (body: Body, t: Tracker) => Promise<unknown>
 
-/** Try Gemini; on failure or missing key, use the mock. Records the provider status. */
+/** Try the models (Gemini → Claude, see llm.ts); on failure or missing keys, use the mock. */
 async function viaGemini<T>(t: Tracker, live: () => Promise<T>, mock: () => T): Promise<T> {
-  if (!geminiReady()) {
+  if (!llmReady()) {
     t.mark('Gemini', 'mock')
     return mock()
   }
   try {
-    const out = await live()
-    t.mark('Gemini', 'live')
-    return out
+    return await live()
   } catch (e) {
-    console.warn('[Gemini] failed, using mock:', (e as Error).message)
-    t.mark('Gemini', 'error')
+    console.warn('[llm] failed, using mock:', (e as Error).message.slice(0, 200))
     return mock()
   }
 }
@@ -73,7 +71,7 @@ const cast: Handler = async (b, t) => {
   const card = await viaGemini(
     t,
     async () => {
-      const r = await geminiJSON<Record<string, string>>({
+      const r = await llmJSON<Record<string, string>>(t, {
         model: routeTask('cast'),
         system:
           'You are the casting director of a Pixar-style short film where real desk objects come alive after the humans leave. Be funny, specific and warm. Respond with JSON only.',
@@ -124,7 +122,7 @@ Return JSON:
 }
 
 // ------------------------------------------------------------------ model3d (Gemini builds the 3D toy)
-function cleanModel(raw: any, shape: Shape, object: string): Model3D {
+function cleanModel(raw: any, shape: Shape, object: string, source: Model3D['source']): Model3D {
   const fallback = mockModel(shape, object)
   if (!raw || typeof raw !== 'object' || !raw.body) return fallback
   const num = (v: unknown, d: number, lo = 0.02, hi = 2) => {
@@ -164,7 +162,7 @@ function cleanModel(raw: any, shape: Shape, object: string): Model3D {
       height: num(label.height, body.height * 0.55, 0.1, 1.4),
     },
     parts,
-    source: 'gemini',
+    source,
   }
 }
 
@@ -173,7 +171,7 @@ const model3d: Handler = async (b, t) => {
   return viaGemini(
     t,
     async () => {
-      const raw = await geminiJSON({
+      const raw = await llmJSON(t, {
         model: models.builder3d(),
         system:
           'You are a 3D toy designer. You build cute, chunky, instantly recognisable toy versions of real objects out of simple primitives for a three.js scene. Respond with JSON only.',
@@ -186,9 +184,10 @@ JSON:
 Sizes: box [w,h,d], cylinder [radiusTop,radiusBottom,height], sphere [r], cone [r,h], torus [radius,tube], capsule [r,length]. Rotations in radians.`,
         images: crop ? [crop] : [],
         temperature: 0.6,
-        timeoutMs: 40000,
+        timeoutMs: 45000,
+        effort: 'medium',
       })
-      return cleanModel(raw, shape, object)
+      return cleanModel(raw, shape, object, t.report['Gemini'] === 'live' ? 'gemini' : 'claude')
     },
     () => mockModel(shape, object),
   )
@@ -225,13 +224,13 @@ const beat: Handler = async (b, t) => {
         .filter((w) => w.to === character.id)
         .slice(-3)
         .map((w) => `${name(castList, w.from)} whispered to you: "${w.text}"`)
-      const raw = await geminiJSON({
+      const raw = await llmJSON(t, {
         model: routeTask('beat'),
         system: `You are ${character.name}, a ${character.object} on a table after the humans left. You are a character in an animated film.
 Personality: ${character.personality}. Voice: ${character.voice}.
 Secret goal: ${character.secretGoal}. Skill card: ${character.skill}. Worth: ${character.facts.price}.
 Memory and rumors from earlier tables: ${character.memory.length ? character.memory.join(' | ') : 'none yet'}.
-Rules: pick exactly ONE action from the list. Stay in character. Be dramatic and funny, short lines (max 14 words). Refer to your memory or rumors when it matters. Never decide the ending of the film. Alliances can be broken. Return strict JSON only.
+Rules: pick exactly ONE action from the list. Stay in character. Be dramatic and funny, short punchy lines (max 12 words). Refer to your memory or rumors when it matters. Never decide the ending of the film. Alliances can be broken. Return strict JSON only.
 Actions:
 ${ACTION_HELP}
 Spots: ${Object.entries(SPOTS).map(([k, v]) => `${k} ${fmt(v)}`).join(', ')}`,
@@ -243,7 +242,7 @@ ${others}
 Last events:
 ${world.events.slice(-6).map(logLine).join('\n') || 'nothing yet'}
 ${myWhispers.join('\n')}
-Return {"action": "...", "target": "id or spot", "text": "...", "why": "one sentence reason", "emotion": "one word"}`,
+Return {"action": "...", "target": "id or spot", "text": "...", "why": "one short sentence, max 20 words", "emotion": "one word"}`,
         temperature: 1.05,
         timeoutMs: 15000,
       })
@@ -273,7 +272,7 @@ const narrator: Handler = async (b, t) => {
     const opening = await viaGemini(
       t,
       async () => {
-        const r = await geminiJSON<{ opening: string }>({
+        const r = await llmJSON<{ opening: string }>(t, {
           model: routeTask('narrator'),
           system: 'You are the Narrator of a short animated film where desk objects come alive after the humans leave. Dry, cinematic, funny. JSON only.',
           prompt: `Cast: ${castList.map((c) => `${c.name} (${c.object}, ${c.personality})`).join('; ')}.
@@ -291,7 +290,7 @@ Write ONE opening event in max 30 words that creates a conflict over something s
   const ending = await viaGemini<Ending>(
     t,
     async () => {
-      const r = await geminiJSON<Ending>({
+      const r = await llmJSON<Ending>(t, {
         model: routeTask('narrator'),
         system: 'You are the Narrator. You decide the ending ONLY from what is in the decision log: alliances, betrayals, pushes, skills and who ended up near the charger. JSON only.',
         prompt: `Cast: ${castList.map((c) => `${c.id} = ${c.name} (${c.object})`).join('; ')}
@@ -299,7 +298,7 @@ Final positions (charger at 0,0): ${castList.map((c) => `${c.name} ${fmt(world?.
 Alliances at the end: ${(world?.alliances ?? []).map(([a, b2]) => `${name(castList, a)}+${name(castList, b2)}`).join(', ') || 'none'}
 Decision log:
 ${log.map(logLine).join('\n')}
-Return {"winnerId": "id of the winner", "title": "a movie title, 2-5 words", "ending": "the last line of the film, max 30 words", "verdict": "why they won, citing specific beats, max 25 words"}`,
+Return {"winnerId": "id of the winner", "title": "a movie title, 2-5 words", "ending": "the last line of the film, max 30 words", "verdict": "why they won, citing specific beats, max 25 words, never mention coordinates or numbers like (0,0)"}`,
         temperature: 0.8,
       })
       if (!castList.some((c) => c.id === r.winnerId)) throw new Error('bad winner')
@@ -316,7 +315,7 @@ const camera: Handler = async (b, t) => {
   return viaGemini<Shot>(
     t,
     async () => {
-      const r = await geminiJSON<Shot>({
+      const r = await llmJSON<Shot>(t, {
         model: routeTask('camera'),
         system: 'You are the Cinematographer of an animated film. Pick one shot for this beat. JSON only.',
         prompt: `This beat's events:\n${events.map(logLine).join('\n')}
@@ -419,7 +418,7 @@ const interview: Handler = async (b, t) => {
   return viaGemini(
     t,
     async () =>
-      geminiJSON<{ pick: string; score: number; evidence: string[]; verdict: string }>({
+      llmJSON<{ pick: string; score: number; evidence: string[]; verdict: string }>(t, {
         model: routeTask('narrator'),
         system: 'You interview a film-festival judge after an AI-agent film and score how well their answer is backed by what happened. JSON only.',
         prompt: `Question: "Who deserved to win, and why?"

@@ -32,6 +32,7 @@ export async function speak(text: string, voiceId: string, seed: number, opts: {
   if (src) {
     const audio = new Audio(src)
     audio.volume = opts.whisper ? 0.6 : 1
+    audio.playbackRate = 1.08
     const done = new Promise<void>((resolve) => {
       audio.onended = () => resolve()
       audio.onerror = () => resolve()

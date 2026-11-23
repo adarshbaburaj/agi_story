@@ -80,13 +80,10 @@ export async function runFilm() {
 
   // ---- beats
   const total = useFilm.getState().totalBeats
-  for (let beat = 1; beat <= total; beat++) {
-    if (!alive()) return
-    useFilm.setState({ beat, phase: 'thinking' })
+  // every agent decides in parallel, each sees the same world
+  const decide = (beat: number) => {
     const w = { ...world(), beat }
-
-    // every agent decides in parallel, each sees the same world
-    const decisions = await Promise.all(
+    return Promise.all(
       cast.map(async (c) => {
         const { crop: _c, model: _m, ...card } = c
         const raw = await api<AgentAction>('beat', { character: card, cast: castSum, world: w }).catch(() => ({
@@ -97,6 +94,14 @@ export async function runFilm() {
         return { c, a: validateAction(raw, c.id, castSum, c.skill) }
       }),
     )
+  }
+  let next: ReturnType<typeof decide> | null = null
+  for (let beat = 1; beat <= total; beat++) {
+    if (!alive()) return
+    useFilm.setState({ beat })
+    if (!next) useFilm.setState({ phase: 'thinking' })
+    const decisions = await (next ?? decide(beat))
+    next = null
     if (!alive()) return
 
     // prefetch voices while the camera decides
@@ -112,9 +117,11 @@ export async function runFilm() {
 
     // play actions one by one: whispers & betrayals feel better spaced out
     const order = [...decisions].sort((x, y) => rank(x.a) - rank(y.a))
-    for (const { c, a } of order) {
+    for (const [k, { c, a }] of order.entries()) {
       if (!alive()) return
       applyAction(c, a)
+      // the world is final for this beat: let the agents think about the next one while this line plays
+      if (k === order.length - 1 && beat < total) next = decide(beat + 1)
       const entry = toLog(beat, c, a, cast)
       useFilm.setState((s) => ({ log: [...s.log, entry] }))
       if (a.action === 'whisper' && a.target) {
@@ -131,9 +138,9 @@ export async function runFilm() {
       const line = spokenLine(a)
       useFilm.setState({ speakingId: line ? c.id : null })
       if (line) await speak(line, c.voiceId, cast.indexOf(c), { whisper: a.action === 'whisper' })
-      else await sleep(1100)
+      else await sleep(800)
       useFilm.setState({ speakingId: null })
-      await sleep(250)
+      await sleep(120)
     }
   }
   if (!alive()) return

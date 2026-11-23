@@ -164,6 +164,7 @@ export async function casuroScore(t: Tracker, payload: unknown): Promise<Intervi
 export const SPONSORS = [
   { name: 'Gemini', prefix: 'GEMINI', role: '3D object builder, vision, agents' },
   { name: 'ElevenLabs', prefix: 'ELEVENLABS', role: 'a voice per object' },
+  { name: 'Claude', prefix: 'ANTHROPIC', role: 'backup brain for agents + 3D' },
   { name: 'Bruin', prefix: 'BRUIN', role: 'run memory · rumor mill' },
   { name: 'BAND', prefix: 'BAND', role: 'whisper channel' },
   { name: 'Runware', prefix: 'RUNWARE', role: 'fast image gen' },
@@ -185,7 +186,9 @@ export function sponsorConfig() {
         ? !!env('GEMINI_API_KEY')
         : s.prefix === 'ELEVENLABS'
           ? !!env('ELEVENLABS_API_KEY')
-          : s.prefix === 'RUNWARE'
+          : s.prefix === 'ANTHROPIC'
+            ? !!env('ANTHROPIC_API_KEY')
+            : s.prefix === 'RUNWARE'
             ? !!env('RUNWARE_API_KEY')
             : configured(s.prefix),
   }))

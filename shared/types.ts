@@ -25,7 +25,7 @@ export interface Model3D {
   /** Where the photo label sits on the front of the body (y centre, size). */
   label: { y: number; width: number; height: number }
   parts: ModelPart[]
-  source: 'gemini' | 'mock'
+  source: 'gemini' | 'claude' | 'mock'
 }
 
 export interface Character {

@@ -74,7 +74,7 @@ export const useFilm = create<FilmState>((set) => ({
   log: [],
   opening: '',
   beat: 0,
-  totalBeats: 8,
+  totalBeats: Number(new URLSearchParams(location.search).get('beats')) || 6,
   phase: 'idle',
   bubbles: {},
   fx: [],

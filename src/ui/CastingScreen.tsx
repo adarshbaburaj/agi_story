@@ -1,7 +1,7 @@
 // Snap → drag boxes around 3-5 objects → each crop becomes a character (Gemini vision) with a
 // Gemini-built 3D body, a Finch skill, a Telem fact and a Glasser price.
 import { useRef, useState } from 'react'
-import type { Character, Model3D, Vec2 } from '../../shared/types'
+import { SKILLS, type Character, type Model3D, type Skill, type Vec2 } from '../../shared/types'
 import { api } from '../api'
 import { refreshMemory, runFilm } from '../film/engine'
 import { useFilm } from '../film/store'
@@ -93,7 +93,14 @@ export function CastingScreen() {
           setStatus((s) => ({ ...s, [i]: 'building' }))
           const model = await api<Model3D>('model3d', { crop, object: ch.object, shape: ch.shape })
           results[i] = { ...ch, model }
-          useFilm.setState({ cast: results.filter(Boolean) as Character[] })
+          // every character gets a different skill card so the film has variety
+    const final = results.filter(Boolean) as Character[]
+    const used = new Set<Skill>()
+    for (const c of final) {
+      if (used.has(c.skill)) c.skill = SKILLS.find((s) => !used.has(s)) ?? c.skill
+      used.add(c.skill)
+    }
+    useFilm.setState({ cast: final })
           setStatus((s) => ({ ...s, [i]: 'done' }))
         } catch (e) {
           console.error(e)
@@ -181,7 +188,9 @@ function CastIntro({ busy, status, total, onBack }: { busy: boolean; status: Rec
                     <div className="chips">
                       <span className="chip skill">★ {c.skill}</span>
                       <span className="chip">{c.shape}</span>
-                      <span className={`chip ${c.model?.source === 'gemini' ? 'live' : ''}`}>{st === 'building' ? '3D: building…' : c.model?.source === 'gemini' ? '3D by Gemini' : '3D: basic'}</span>
+                      <span className={`chip ${c.model && c.model.source !== 'mock' ? 'live' : ''}`}>
+                        {st === 'building' ? '3D: building…' : c.model?.source === 'gemini' ? '3D by Gemini' : c.model?.source === 'claude' ? '3D by Claude' : '3D: basic'}
+                      </span>
                     </div>
                     <p className="pers">“{c.personality}” · voice: {c.voice}</p>
                     <p className="goal">Secret goal: {c.secretGoal}</p>

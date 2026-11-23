@@ -42,6 +42,7 @@ export function DecisionLog() {
                 {ICON[e.action]} {e.action.replace('_', ' ')}
               </span>
               {e.targetName && <b>→ {e.targetName}</b>}
+              {/rumou?r|last time|last table|earlier table|remember|last run|judge said/i.test(e.why) && <span className="mem-tag">🧠 remembers</span>}
             </div>
             {e.text && <div className="txt">“{e.text}”</div>}
             <div className="why">why: {e.why}</div>

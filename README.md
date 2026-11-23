@@ -10,10 +10,12 @@ Track 01 · Agent Animated Film
 2. **Cast**: drag boxes around 3–5 objects. For each crop:
    - **Gemini** (vision) writes a character card: name, personality, voice, secret goal, skill, price, fun fact.
    - **Gemini (Hydrogen)** builds the **3D toy**: a body plus 2–10 primitive parts (lid, straw, screen, strap…) in the object's real colours, with the photo printed on the front, googly eyes and a talking mouth.
-3. **Film**: the Narrator agent sets the opening ("Midnight. One charger left. The cleaner arrives at 6 AM."). Then 8 beats: every object agent decides **in parallel** with one action out of `move_to · say · whisper · ally · betray · push · hide_behind · use_skill`, plus a one-sentence *why*. A Cinematographer agent picks each beat's shot.
+3. **Film**: the Narrator agent sets the opening ("Midnight. One charger left. The cleaner arrives at 6 AM."). Then 6 beats (`?beats=8` in the URL for a longer film): every object agent decides **in parallel** with one action out of `move_to · say · whisper · ally · betray · push · hide_behind · use_skill`, plus a one-sentence *why*. A Cinematographer agent picks each beat's shot.
 4. **Voices**: **ElevenLabs** gives every object its own voice, plus the Narrator (browser speech is the fallback).
 5. **Ending**: the Narrator decides the winner **only from the decision log**. Losers tip over, the winner gets confetti and a poster.
 6. **Memory**: each run is saved (Bruin adapter + localStorage). Next run, every agent receives 2–3 rumors from earlier tables, and the audience interview verdict too, which changes their choices.
+
+Every model call goes Gemini → Claude → offline mock, so the film never breaks; the casting cards and sponsor panel show which one actually ran.
 
 ## Run locally
 
@@ -39,7 +41,8 @@ Import the repo in Vercel and add the env vars from `.env.example`. `api/[route]
 | `GEMINI_MODEL` | strong model: Narrator, casting, camera (e.g. `gemini-4-hydrogen`) |
 | `GEMINI_3D_MODEL` | model that builds the 3D toys (defaults to `GEMINI_MODEL`) |
 | `GEMINI_FAST_MODEL` | per-agent beats (defaults to `GEMINI_MODEL`) |
-| `ELEVENLABS_API_KEY` | per-character voices |
+| `ANTHROPIC_API_KEY` | Claude backup brain: used automatically if Gemini fails (`CLAUDE_MODEL`, default `claude-opus-5-5`) |
+| `ELEVENLABS_API_KEY` | per-character voices (uses your account's own voices) |
 | `<SPONSOR>_API_URL` / `_API_KEY` | Bruin, BAND, AdaL, Finch, Telem, Glasser, Casuro adapters (`server/sponsors/`) |
 | `RUNWARE_API_KEY` | poster image fallback |
 
