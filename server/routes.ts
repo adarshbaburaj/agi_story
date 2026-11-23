@@ -13,7 +13,7 @@ import type {
   Whisper,
   WorldState,
 } from '../shared/types.js'
-import { SPOTS } from '../shared/types.js'
+import { MOOD_ORDER, MOODS, SPOTS, type Mood } from '../shared/types.js'
 import { validateAction } from '../shared/validate.js'
 import { Tracker, env } from './env.js'
 import { geminiImage, geminiReady, models } from './gemini.js'
@@ -62,6 +62,8 @@ const cast: Handler = async (b, t) => {
     index?: number
     total?: number
   }
+  const mood: Mood = MOOD_ORDER[index % MOOD_ORDER.length]
+  const M = MOODS[mood]
   const voices = await voiceList()
   // cast members are cast in parallel, so each gets its own slice of the voice list: no two share a voice
   const n = Math.min(Math.max(1, total), voices.length)
@@ -80,9 +82,9 @@ Return JSON:
 {"object": "what it is, 2-4 words",
  "name": "a short character name derived from the object (brand/model if visible)",
  "shape": one of ${JSON.stringify(SHAPES)} (closest toy body: bottles/cups=cylinder, laptops/phones/books=box, round things=sphere, flat things like lanyards/cards/paper=card),
- "personality": "under 8 words, derived from how it looks (e.g. half-empty bottle = anxious)",
- "voice": "under 6 words describing its voice",
- "voiceId": the id of the best matching voice from this list:\n${voiceMenu}
+ "personality": "under 10 words: its core emotion is ${M.label.toUpperCase()} (${M.persona}), mixed with how the object looks",
+ "voice": "under 6 words describing its voice (${M.voiceHint})",
+ "voiceId": the id of the voice from this list that best fits a ${M.voiceHint} character:\n${voiceMenu}
  "secretGoal": "what it secretly wants tonight, under 14 words",
  "skill": one of Persuade, Deceive, Hide, Rally, Bargain,
  "price": "typical retail price like $24",
@@ -112,7 +114,8 @@ Return JSON:
     name: String(card.name ?? object).slice(0, 24),
     object,
     shape,
-    personality: card.personality ?? 'mysterious',
+    personality: card.personality ?? M.persona,
+    mood,
     voice: card.voice ?? 'plain',
     voiceId,
     secretGoal: card.secretGoal ?? 'survive the night',
@@ -218,7 +221,7 @@ const beat: Handler = async (b, t) => {
     async () => {
       const others = castList
         .filter((c) => c.id !== character.id)
-        .map((c) => `- ${c.id} "${c.name}" (${c.object}, skill ${c.skill}, ${c.personality}) at ${fmt(world.positions[c.id])}${world.hidden.includes(c.id) ? ' [hiding]' : ''}`)
+        .map((c) => `- ${c.id} "${c.name}" (${c.object}, ${c.mood ? MOODS[c.mood].label + ', ' : ''}skill ${c.skill}, ${c.personality}) at ${fmt(world.positions[c.id])}${world.hidden.includes(c.id) ? ' [hiding]' : ''}`)
         .join('\n')
       const allies = world.alliances
         .filter((a) => a.includes(character.id))
@@ -231,6 +234,8 @@ const beat: Handler = async (b, t) => {
         model: routeTask('beat'),
         system: `You are ${character.name}, a ${character.object} on a table after the humans left. You are a character in an animated film.
 Personality: ${character.personality}. Voice: ${character.voice}.
+Core emotion: ${MOODS[character.mood ?? 'sunny'].label} — ${MOODS[character.mood ?? 'sunny'].persona}.
+How you talk (every single line must sound like this): ${MOODS[character.mood ?? 'sunny'].style}
 Secret goal: ${character.secretGoal}. Skill card: ${character.skill}. Worth: ${character.facts.price}.
 Memory and rumors from earlier tables: ${character.memory.length ? character.memory.join(' | ') : 'none yet'}.
 Rules: pick exactly ONE action from the list. Stay in character. Be dramatic and funny, short punchy lines (max 12 words). Refer to your memory or rumors when it matters. Never decide the ending of the film. Alliances can be broken. Return strict JSON only.
@@ -341,13 +346,13 @@ Return {"type": "...", "subject": "character id or omit", "reason": "max 10 word
 
 // ------------------------------------------------------------------ voice (ElevenLabs)
 const voice: Handler = async (b, t) => {
-  const { text, voiceId } = b as { text: string; voiceId: string }
+  const { text, voiceId, mood } = b as { text: string; voiceId: string; mood?: Mood }
   if (!elevenReady()) {
     t.mark('ElevenLabs', 'mock')
     return { audio: null }
   }
   try {
-    const audio = await tts(text, voiceId)
+    const audio = await tts(text, voiceId, mood ? MOODS[mood].voice : undefined)
     t.mark('ElevenLabs', 'live')
     return { audio }
   } catch (e) {

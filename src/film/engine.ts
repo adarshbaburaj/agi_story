@@ -16,6 +16,7 @@ export const summary = (c: Character): CastSummary => ({
   object: c.object,
   skill: c.skill,
   personality: c.personality,
+  mood: c.mood,
 })
 
 function world(): WorldState {
@@ -107,7 +108,7 @@ export async function runFilm() {
     // prefetch voices while the camera decides
     for (const { c, a } of decisions) {
       const line = spokenLine(a)
-      if (line) prefetch(line, c.voiceId)
+      if (line) prefetch(line, c.voiceId, c.mood)
     }
     const planned: LogEntry[] = decisions.map(({ c, a }) => toLog(beat, c, a, cast))
     const shot = await api<Shot>('camera', { events: planned, cast: castSum }).catch(
@@ -137,7 +138,7 @@ export async function runFilm() {
       }
       const line = spokenLine(a)
       useFilm.setState({ speakingId: line ? c.id : null })
-      if (line) await speak(line, c.voiceId, cast.indexOf(c), { whisper: a.action === 'whisper' })
+      if (line) await speak(line, c.voiceId, cast.indexOf(c), { whisper: a.action === 'whisper', mood: c.mood })
       else await sleep(800)
       useFilm.setState({ speakingId: null })
       await sleep(120)

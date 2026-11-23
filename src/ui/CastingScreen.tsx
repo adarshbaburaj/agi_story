@@ -1,7 +1,7 @@
 // Snap → drag boxes around 3-5 objects → each crop becomes a character (Gemini vision) with a
 // Gemini-built 3D body, a Finch skill, a Telem fact and a Glasser price.
 import { useRef, useState } from 'react'
-import { SKILLS, type Character, type Model3D, type Skill, type Vec2 } from '../../shared/types'
+import { MOODS, SKILLS, type Character, type Model3D, type Skill, type Vec2 } from '../../shared/types'
 import { api } from '../api'
 import { refreshMemory, runFilm } from '../film/engine'
 import { useFilm } from '../film/store'
@@ -176,7 +176,7 @@ function CastIntro({ busy, status, total, onBack }: { busy: boolean; status: Rec
           const c = cast.find((x) => x.id === `obj_${i + 1}`)
           const st = status[i] ?? 'idle'
           return (
-            <div key={i} className={`card ${c ? 'in' : ''}`} style={{ animationDelay: `${i * 120}ms` }}>
+            <div key={i} className={`card ${c ? 'in' : ''}`} style={{ animationDelay: `${i * 120}ms`, borderColor: c?.mood ? MOODS[c.mood].color + '66' : undefined }}>
               {c ? (
                 <>
                   <img src={c.crop} />
@@ -186,6 +186,11 @@ function CastIntro({ busy, status, total, onBack }: { busy: boolean; status: Rec
                       {c.object} · <b>{c.facts.price}</b>
                     </div>
                     <div className="chips">
+                      {c.mood && (
+                        <span className="chip mood" style={{ background: MOODS[c.mood].color + '33', color: MOODS[c.mood].color }}>
+                          {MOODS[c.mood].emoji} {MOODS[c.mood].label}
+                        </span>
+                      )}
                       <span className="chip skill">★ {c.skill}</span>
                       <span className="chip">{c.shape}</span>
                       <span className={`chip ${c.model && c.model.source !== 'mock' ? 'live' : ''}`}>

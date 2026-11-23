@@ -4,6 +4,51 @@ export type Shape = 'cylinder' | 'box' | 'sphere' | 'card'
 export type Skill = 'Persuade' | 'Deceive' | 'Hide' | 'Rally' | 'Bargain'
 export const SKILLS: Skill[] = ['Persuade', 'Deceive', 'Hide', 'Rally', 'Bargain']
 
+export type Mood = 'sunny' | 'gloomy' | 'fuming' | 'genz' | 'jittery'
+
+/** Each cast member gets a different core emotion: it drives how they talk, act and sound. */
+export const MOODS: Record<
+  Mood,
+  { label: string; emoji: string; color: string; persona: string; style: string; voiceHint: string; voice: { speed: number; stability: number; style: number } }
+> = {
+  sunny: {
+    label: 'Sunny', emoji: '☀️', color: '#ffd166',
+    persona: 'relentlessly happy and optimistic, sees the bright side of everything, even betrayal',
+    style: 'Bubbly, exclamation marks, cheerful compliments, finds silver linings. Never mean, even when scheming.',
+    voiceHint: 'bright, upbeat, energetic, young',
+    voice: { speed: 1.12, stability: 0.3, style: 0.6 },
+  },
+  gloomy: {
+    label: 'Gloomy', emoji: '🌧', color: '#7aa7ff',
+    persona: 'sad, melancholy, expects the worst, sighs a lot, oddly wise',
+    style: 'Slow, mopey, sighs ("*sigh*"), "what is even the point", trailing "..." — but occasionally devastatingly insightful.',
+    voiceHint: 'soft, low, slow, tired, melancholic',
+    voice: { speed: 0.86, stability: 0.6, style: 0.35 },
+  },
+  fuming: {
+    label: 'Fuming', emoji: '🔥', color: '#ff4d4d',
+    persona: 'angry, short-fused, everything is an outrage, SHOUTS in caps',
+    style: 'Short, explosive sentences, some words in CAPS, indignant, threatens dramatically (comedic, never cruel).',
+    voiceHint: 'gruff, intense, loud, forceful',
+    voice: { speed: 1.05, stability: 0.22, style: 0.85 },
+  },
+  genz: {
+    label: 'Gen Z', emoji: '💅', color: '#c084fc',
+    persona: 'Gen Z, unbothered, chronically online, speaks ONLY in Gen Z slang',
+    style: 'Gen Z slang in every line: no cap, fr fr, it\'s giving, bestie, slay, lowkey, highkey, ate, rizz, the ick, main character, delulu, bussin, mid. Lowercase vibes.',
+    voiceHint: 'young, casual, sassy, playful',
+    voice: { speed: 1.1, stability: 0.4, style: 0.65 },
+  },
+  jittery: {
+    label: 'Jittery', emoji: '😰', color: '#59ffb0',
+    persona: 'anxious overthinker, panics about every possible outcome, nervous laugh',
+    style: 'Rambling, stammering ("w-wait"), what-ifs, nervous "haha", spirals then rallies.',
+    voiceHint: 'nervous, quick, high, breathy',
+    voice: { speed: 1.15, stability: 0.25, style: 0.55 },
+  },
+}
+export const MOOD_ORDER: Mood[] = ['sunny', 'fuming', 'genz', 'gloomy', 'jittery']
+
 export type Vec2 = [number, number] // x, z on the tabletop
 export type Vec3 = [number, number, number]
 
@@ -34,6 +79,7 @@ export interface Character {
   object: string
   shape: Shape
   personality: string
+  mood: Mood
   voice: string
   voiceId: string
   secretGoal: string
@@ -149,4 +195,5 @@ export interface CastSummary {
   object: string
   skill: Skill
   personality: string
+  mood?: Mood
 }

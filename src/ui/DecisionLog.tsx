@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MOODS } from '../../shared/types'
 import { useFilm } from '../film/store'
 
 const ICON: Record<string, string> = {
@@ -18,6 +19,8 @@ export function DecisionLog() {
   const total = useFilm((s) => s.totalBeats)
   const phase = useFilm((s) => s.phase)
   const opening = useFilm((s) => s.opening)
+  const cast = useFilm((s) => s.cast)
+  const moodOf = (id: string) => cast.find((c) => c.id === id)?.mood
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     ref.current?.scrollTo({ top: ref.current.scrollHeight, behavior: 'smooth' })
@@ -37,7 +40,10 @@ export function DecisionLog() {
           <div key={i} className={`entry a-${e.action}`}>
             <div className="line">
               <span className="b">B{e.beat}</span>
-              <b>{e.actorName}</b>
+              <b style={{ color: moodOf(e.actorId) ? MOODS[moodOf(e.actorId)!].color : undefined }}>
+                {moodOf(e.actorId) ? MOODS[moodOf(e.actorId)!].emoji + ' ' : ''}
+                {e.actorName}
+              </b>
               <span className="act">
                 {ICON[e.action]} {e.action.replace('_', ' ')}
               </span>

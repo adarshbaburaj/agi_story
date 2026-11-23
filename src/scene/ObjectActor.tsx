@@ -3,7 +3,7 @@ import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import type { Character, Model3D, ModelPart } from '../../shared/types'
+import { MOODS, type Character, type Model3D, type ModelPart } from '../../shared/types'
 import { useFilm } from '../film/store'
 import { livePos, textureFromDataUrl } from './live'
 
@@ -153,7 +153,8 @@ export function ObjectActor({ ch, index }: { ch: Character; index: number }) {
         <meshBasicMaterial transparent toneMapped={false} />
       </mesh>
       <Html position={[0, -0.05, 0.55]} center zIndexRange={[10, 0]}>
-        <div className={`nametag ${hidden ? 'dim' : ''}`}>
+        <div className={`nametag ${hidden ? 'dim' : ''}`} style={{ boxShadow: ch.mood ? `0 0 0 1.5px ${MOODS[ch.mood].color}` : undefined }}>
+          {ch.mood && <span>{MOODS[ch.mood].emoji}</span>}
           <b>{ch.name}</b>
           <span className="skill">{ch.skill}</span>
         </div>

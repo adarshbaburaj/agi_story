@@ -50,20 +50,22 @@ export async function voiceList(): Promise<{ id: string; desc: string }[]> {
 }
 
 /** Returns base64 mp3. */
-export async function tts(text: string, voiceId: string): Promise<string> {
+type VoiceTune = { speed: number; stability: number; style: number }
+
+export async function tts(text: string, voiceId: string, tune?: VoiceTune): Promise<string> {
   try {
-    return await ttsOnce(text, voiceId)
+    return await ttsOnce(text, voiceId, tune)
   } catch (e) {
     if (!/404|voice_not_found/.test((e as Error).message)) throw e
     const list = await voiceList()
     const alt = list[Math.abs(hash(voiceId)) % list.length]?.id ?? NARRATOR_VOICE()
-    return ttsOnce(text, alt)
+    return ttsOnce(text, alt, tune)
   }
 }
 
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)
 
-async function ttsOnce(text: string, voiceId: string): Promise<string> {
+async function ttsOnce(text: string, voiceId: string, tune?: VoiceTune): Promise<string> {
   const key = env('ELEVENLABS_API_KEY')
   if (!key) throw new Error('ELEVENLABS_API_KEY missing')
   const model = env('ELEVENLABS_MODEL') ?? 'eleven_flash_v2_5'
@@ -75,7 +77,12 @@ async function ttsOnce(text: string, voiceId: string): Promise<string> {
       body: JSON.stringify({
         text: text.slice(0, 400),
         model_id: model,
-        voice_settings: { stability: 0.35, similarity_boost: 0.8, style: 0.45 },
+        voice_settings: {
+          stability: tune?.stability ?? 0.35,
+          similarity_boost: 0.8,
+          style: tune?.style ?? 0.45,
+          speed: tune?.speed ?? 1,
+        },
       }),
     },
   )

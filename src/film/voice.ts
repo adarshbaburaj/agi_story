@@ -1,4 +1,5 @@
 // Voice playback: ElevenLabs audio from /api/voice, browser speechSynthesis as the fallback.
+import type { Mood } from '../../shared/types'
 import { api } from '../api'
 
 const cache = new Map<string, Promise<string | null>>()
@@ -9,12 +10,12 @@ export const setMuted = (m: boolean) => {
 }
 
 /** Start fetching a line now so it's ready when the actor speaks. */
-export function prefetch(text: string, voiceId: string) {
-  const key = `${voiceId}|${text}`
+export function prefetch(text: string, voiceId: string, mood?: Mood) {
+  const key = `${voiceId}|${mood}|${text}`
   if (!cache.has(key)) {
     cache.set(
       key,
-      api<{ audio: string | null }>('voice', { text, voiceId })
+      api<{ audio: string | null }>('voice', { text, voiceId, mood })
         .then((r) => (r.audio ? `data:audio/mpeg;base64,${r.audio}` : null))
         .catch(() => null),
     )
@@ -25,10 +26,10 @@ export function prefetch(text: string, voiceId: string) {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** Speak and resolve when done (or after a cap). `seed` varies the fallback voice per character. */
-export async function speak(text: string, voiceId: string, seed: number, opts: { whisper?: boolean } = {}) {
+export async function speak(text: string, voiceId: string, seed: number, opts: { whisper?: boolean; mood?: Mood } = {}) {
   const minMs = Math.min(4200, 900 + text.length * 45)
   if (muted || !text.trim()) return sleep(minMs)
-  const src = await prefetch(text, voiceId)
+  const src = await prefetch(text, voiceId, opts.mood)
   if (src) {
     const audio = new Audio(src)
     audio.volume = opts.whisper ? 0.6 : 1
