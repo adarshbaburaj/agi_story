@@ -378,7 +378,7 @@ const poster: Handler = async (b, t) => {
   }
   const prompt = `Cinematic animated movie poster titled "${title}". Starring cute 3D toy versions of: ${castList
     .map((c) => `${c.name} the ${c.object}`)
-    .join(', ')}. They stand on a wooden desk at night under a single desk lamp, dramatic rim light, Pixar style. Tagline: "${ending.slice(0, 80)}". Title text at the top, credits block at the bottom.`
+    .join(', ')}. They stand on a wooden desk at night under a single desk lamp, dramatic rim light, polished 3D animated-film style. Tagline: "${ending.slice(0, 80)}". Title text at the top. The only credits text at the bottom reads exactly: "AN AGI STORY PRODUCTION · STARRING ${castList.map((c) => c.name.toUpperCase()).join(' · ')}". Do not include any real studio, company, brand or person names anywhere on the poster.`
   const adal = await adalPoster(t, prompt)
   if (adal) return { image: adal }
   if (runwareReady()) {
