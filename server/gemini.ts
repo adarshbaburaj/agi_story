@@ -3,7 +3,7 @@ import { env, extractJson, parseDataUrl } from './env.js'
 
 const STUDIO = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-const keys = () => [env('GEMINI_API_KEY'), env('GEMINI_API_KEY_1'), env('GOOGLE_API_KEY')].filter(Boolean) as string[]
+const keys = () => [env('GEMINI_API_KEY_2'), env('GEMINI_API_KEY'), env('GEMINI_API_KEY_1'), env('GOOGLE_API_KEY')].filter(Boolean) as string[]
 const useVertex = () => /^(1|true|yes)$/i.test(env('GOOGLE_GENAI_USE_VERTEXAI') ?? '')
 
 export const geminiReady = () => keys().length > 0 || !!env('GOOGLE_CLOUD_ACCESS_TOKEN')
@@ -77,8 +77,9 @@ async function call(opts: GeminiOpts, generationConfig: Record<string, unknown>)
           candidates?: { content?: { parts?: { text?: string; inlineData?: { mimeType: string; data: string } }[] } }[]
         }
       }
-      lastErr = `Gemini ${res.status} (${new URL(ep.url).host}): ${(await res.text()).slice(0, 160)}`
-      if (![400, 401, 403, 404].includes(res.status)) break // rate limit / server error: don't hammer the others
+      lastErr = `Gemini ${res.status} (${new URL(ep.url).host}): ${(await res.text()).slice(0, 400)}`
+      if (env('GEMINI_DEBUG')) console.warn('[Gemini attempt]', lastErr.replace(/\s+/g, ' ').slice(0, 400))
+      if (![400, 401, 402, 403, 404].includes(res.status)) break // rate limit / server error: don't hammer the others
     } finally {
       clearTimeout(timer)
     }

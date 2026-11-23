@@ -29,7 +29,7 @@ export async function llmJSON<T = unknown>(
     } catch (e) {
       lastErr = e
       t.mark('Gemini', 'error')
-      if (/\b(400|401|403|404)\b/.test((e as Error).message)) geminiDownUntil = Date.now() + 5 * 60_000
+      if (/\b(400|401|402|403|404)\b/.test((e as Error).message)) geminiDownUntil = Date.now() + 5 * 60_000
       console.warn('[Gemini]', (e as Error).message.slice(0, 160))
     }
   }
