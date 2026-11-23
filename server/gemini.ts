@@ -3,7 +3,7 @@ import { env, extractJson, parseDataUrl } from './env.js'
 
 const STUDIO = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-const keys = () => [env('GEMINI_API_KEY_2'), env('GEMINI_API_KEY'), env('GEMINI_API_KEY_1'), env('GOOGLE_API_KEY')].filter(Boolean) as string[]
+const keys = () => [env('GEMINI_API_KEY_4'), env('GEMINI_API_KEY_3'), env('GEMINI_API_KEY_2'), env('GEMINI_API_KEY'), env('GEMINI_API_KEY_1'), env('GOOGLE_API_KEY')].filter(Boolean) as string[]
 const useVertex = () => /^(1|true|yes)$/i.test(env('GOOGLE_GENAI_USE_VERTEXAI') ?? '')
 
 export const geminiReady = () => keys().length > 0 || !!env('GOOGLE_CLOUD_ACCESS_TOKEN')
@@ -21,8 +21,15 @@ function endpoints(model: string): { url: string; headers: Record<string, string
       headers: { authorization: `Bearer ${token}` },
     })
   if (useVertex())
-    for (const k of keys())
-      out.push({ url: `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`, headers: { 'x-goog-api-key': k } })
+    for (const k of keys()) {
+      // Vertex AI express mode: the key goes in the query string
+      out.push({ url: `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent?key=${encodeURIComponent(k)}`, headers: {} })
+      if (project)
+        out.push({
+          url: `https://${host}/v1/projects/${project}/locations/${loc}/publishers/google/models/${model}:generateContent?key=${encodeURIComponent(k)}`,
+          headers: {},
+        })
+    }
   for (const k of keys()) out.push({ url: `${STUDIO}/${model}:generateContent`, headers: { 'x-goog-api-key': k } })
   return out
 }
@@ -77,7 +84,7 @@ async function call(opts: GeminiOpts, generationConfig: Record<string, unknown>)
           candidates?: { content?: { parts?: { text?: string; inlineData?: { mimeType: string; data: string } }[] } }[]
         }
       }
-      lastErr = `Gemini ${res.status} (${new URL(ep.url).host}): ${(await res.text()).slice(0, 400)}`
+      lastErr = `Gemini ${res.status} (${new URL(ep.url).host}${new URL(ep.url).pathname.includes('/projects/') ? ' project' : ''}): ${(await res.text()).slice(0, 400)}`
       if (env('GEMINI_DEBUG')) console.warn('[Gemini attempt]', lastErr.replace(/\s+/g, ' ').slice(0, 400))
       if (![400, 401, 402, 403, 404].includes(res.status)) break // rate limit / server error: don't hammer the others
     } finally {
