@@ -40,7 +40,9 @@ export function CastingScreen() {
     if (real) {
       const { photo, backdrop } = await preparePhoto('/demo/table.jpg')
       useFilm.setState({ photo, backdrop, cast: [] })
-      setBoxes([])
+      // optional preset boxes for the backup photo (public/demo/table.json)
+      const preset = await fetch('/demo/table.json').then((r) => (r.ok ? r.json() : null), () => null)
+      setBoxes(Array.isArray(preset?.boxes) ? preset.boxes : [])
       return
     }
     const d = drawDemoTable()
@@ -119,7 +121,7 @@ export function CastingScreen() {
     <div className="snap">
       <div className="snap-head">
         <h1>
-          After Hours <small>your table, after the humans leave</small>
+          AGI Story <small>After Hours · your table, after the humans leave</small>
         </h1>
         <p>1 · Snap a photo of the table. 2 · Drag a box around 3–5 objects. 3 · They become the cast.</p>
       </div>

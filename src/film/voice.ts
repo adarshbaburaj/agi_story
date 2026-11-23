@@ -1,6 +1,7 @@
 // Voice playback: ElevenLabs audio from /api/voice, browser speechSynthesis as the fallback.
 import type { Mood } from '../../shared/types'
 import { api } from '../api'
+import { mark } from './cinema'
 
 const cache = new Map<string, Promise<string | null>>()
 let muted = false
@@ -41,6 +42,7 @@ export async function speak(text: string, voiceId: string, seed: number, opts: {
     })
     try {
       await audio.play()
+      mark({ kind: 'voice', text, voiceId, mood: opts.mood, whisper: !!opts.whisper, src })
       return done
     } catch {
       /* autoplay blocked → fall through */

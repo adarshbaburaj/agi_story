@@ -44,6 +44,8 @@ interface FilmState {
   totalBeats: number
   phase: Phase
   bubbles: Record<string, Bubble>
+  thoughts: Record<string, { text: string; at: number }>
+  focusId: string | null
   fx: Fx[]
   whisperLines: WhisperLine[]
   speakingId: string | null
@@ -57,6 +59,7 @@ interface FilmState {
   addFx: (f: Omit<Fx, 'id' | 'at'>) => void
   addWhisperLine: (from: string, to: string) => void
   bubble: (id: string, text: string, kind: Bubble['kind']) => void
+  think: (id: string, text: string) => void
   mergeSponsors: (r: Record<string, SponsorState>) => void
   resetFilm: () => void
 }
@@ -77,6 +80,8 @@ export const useFilm = create<FilmState>((set) => ({
   totalBeats: Number(new URLSearchParams(location.search).get('beats')) || 6,
   phase: 'idle',
   bubbles: {},
+  thoughts: {},
+  focusId: null,
   fx: [],
   whisperLines: [],
   speakingId: null,
@@ -97,6 +102,7 @@ export const useFilm = create<FilmState>((set) => ({
       ],
     })),
   bubble: (id, text, kind) => set((s) => ({ bubbles: { ...s.bubbles, [id]: { text, kind, at: performance.now() } } })),
+  think: (id, text) => set((s) => ({ focusId: id, thoughts: { ...s.thoughts, [id]: { text, at: performance.now() } } })),
   mergeSponsors: (r) =>
     set((s) => {
       const next = { ...s.sponsors }
@@ -113,6 +119,8 @@ export const useFilm = create<FilmState>((set) => ({
       beat: 0,
       phase: 'idle',
       bubbles: {},
+      thoughts: {},
+      focusId: null,
       fx: [],
       whisperLines: [],
       speakingId: null,

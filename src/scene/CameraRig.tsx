@@ -2,6 +2,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useRef } from 'react'
 import * as THREE from 'three'
+import { CINEMA } from '../film/cinema'
 import { useFilm } from '../film/store'
 import { focusTarget, livePos } from './live'
 
@@ -16,6 +17,25 @@ export function CameraRig() {
     const { shot, screen } = useFilm.getState()
     const subj = shot.subject ? livePos[shot.subject] : undefined
     const type = screen === 'snap' || screen === 'cast' ? 'orbit' : shot.type
+
+    // cinema mode: one continuous take that glides to whoever is thinking or speaking;
+    // the Cinematographer agent's shot type still sets how close we are
+    if (CINEMA && (screen === 'film' || screen === 'credits')) {
+      const s = useFilm.getState()
+      const id = s.speakingId ?? s.focusId
+      const p = id ? livePos[id] : undefined
+      const radius = s.phase === 'opening' ? 6.2 : type === 'wide' ? 4.2 : type === 'orbit' ? 3.2 : type === 'over_shoulder' ? 2.6 : 2.2
+      const a = t * 0.06 + (s.phase === 'done' ? t * 0.12 : 0)
+      const cx = p ? p.x : 0
+      const cz = p ? p.z : 0
+      wantPos.set(cx + Math.sin(a) * radius * 0.55, (s.phase === 'opening' ? 3.4 : 1.0) + radius * 0.22, cz + Math.cos(a) * radius * 0.85 + 0.4)
+      wantLook.set(cx, p ? 0.75 : 0.3, cz)
+      camera.position.lerp(wantPos, 0.018)
+      look.current.lerp(wantLook, 0.03)
+      camera.lookAt(look.current)
+      focusTarget.copy(look.current)
+      return
+    }
 
     if (type === 'closeup' && subj) {
       wantPos.set(subj.x + 0.4 + Math.sin(t * 0.4) * 0.15, 1.45, subj.z + 2.7)

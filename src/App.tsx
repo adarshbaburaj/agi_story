@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CINEMA } from './film/cinema'
 import { useFilm } from './film/store'
 import { setMuted } from './film/voice'
 import { Stage } from './scene/Stage'
@@ -17,7 +18,7 @@ export default function App() {
   const filming = screen === 'film' || screen === 'credits'
 
   return (
-    <div className={`app screen-${screen}`}>
+    <div className={`app screen-${screen} ${CINEMA ? 'cinema' : ''}`}>
       <div className="stage">
         <Stage />
       </div>

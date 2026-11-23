@@ -20,6 +20,7 @@ export function ObjectActor({ ch, index }: { ch: Character; index: number }) {
   const hidden = useFilm((s) => s.hidden.includes(ch.id))
   const speaking = useFilm((s) => s.speakingId === ch.id)
   const bubble = useFilm((s) => s.bubbles[ch.id])
+  const thought = useFilm((s) => s.thoughts[ch.id])
   const ending = useFilm((s) => s.ending)
   const phase = useFilm((s) => s.phase)
 
@@ -159,6 +160,16 @@ export function ObjectActor({ ch, index }: { ch: Character; index: number }) {
           <span className="skill">{ch.skill}</span>
         </div>
       </Html>
+      {thought && performance.now() - thought.at < 6000 && (
+        <Html position={[-0.35, h + 1.05, 0]} center zIndexRange={[30, 21]}>
+          <div className="thought" key={thought.at} style={{ borderColor: ch.mood ? MOODS[ch.mood].color : undefined }}>
+            <span className="thought-head">💭 {ch.name} is thinking</span>
+            {thought.text}
+            <i className="dot d1" />
+            <i className="dot d2" />
+          </div>
+        </Html>
+      )}
       {showBubble && (
         <Html position={[0, h + 0.45, 0]} center zIndexRange={[20, 11]}>
           <div className={`bubble ${bubble.kind}`} key={bubble.at}>

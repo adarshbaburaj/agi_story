@@ -4,6 +4,7 @@ import { validateAction } from '../../shared/validate'
 import { api } from '../api'
 import { applyAction, spokenLine } from './actions'
 import { generalRumors, loadHistory, rumorsFor, saveRun } from './memory'
+import { CINEMA, mark, startReel } from './cinema'
 import { useFilm } from './store'
 import { prefetch, speak } from './voice'
 
@@ -39,6 +40,7 @@ const NARRATOR_SEED = 99
 
 async function narrate(text: string, voiceId: string) {
   useFilm.setState({ subtitle: text })
+  mark({ kind: 'narrator', text })
   await speak(text, voiceId, NARRATOR_SEED)
   await sleep(300)
 }
@@ -61,6 +63,7 @@ export async function runFilm() {
   const alive = () => token === runToken
   const st = useFilm.getState()
   st.resetFilm()
+  startReel()
   useFilm.setState({ screen: 'film', phase: 'opening', runNumber: st.runNumber + 1 })
 
   const history = await refreshMemory()
@@ -120,7 +123,13 @@ export async function runFilm() {
     const order = [...decisions].sort((x, y) => rank(x.a) - rank(y.a))
     for (const [k, { c, a }] of order.entries()) {
       if (!alive()) return
+      // the agent thinks out loud first: its real reasoning, then the move
+      useFilm.getState().think(c.id, a.why)
+      mark({ kind: 'thought', actorId: c.id, name: c.name, mood: c.mood, text: a.why, beat })
+      await sleep(CINEMA ? 1500 : 900)
+      if (!alive()) return
       applyAction(c, a)
+      mark({ kind: 'action', actorId: c.id, name: c.name, mood: c.mood, action: a.action, target: a.target, text: a.text, beat })
       // the world is final for this beat: let the agents think about the next one while this line plays
       if (k === order.length - 1 && beat < total) next = decide(beat + 1)
       const entry = toLog(beat, c, a, cast)
@@ -156,7 +165,8 @@ export async function runFilm() {
     world: world(),
   }).catch(() => ({ winnerId: cast[0].id, title: 'After Hours', ending: 'Dawn breaks.', verdict: '', voiceId: narratorVoice }))
   if (!alive()) return
-  useFilm.setState({ ending, shot: { type: 'closeup', subject: ending.winnerId, reason: 'the winner' } })
+  useFilm.setState({ ending, focusId: ending.winnerId, shot: { type: 'closeup', subject: ending.winnerId, reason: 'the winner' } })
+  mark({ kind: 'ending', winnerId: ending.winnerId, title: ending.title, text: ending.ending, verdict: ending.verdict })
   // the poster renders while the Narrator reads the last line
   const posterPromise = makePoster(ending.title, ending.ending)
   await narrate(ending.ending, narratorVoice)
@@ -175,6 +185,7 @@ export async function runFilm() {
   await saveRun(run)
   ;(window as any).__lastRun = run
   useFilm.setState({ subtitle: null, phase: 'done', screen: 'credits' })
+  mark({ kind: 'credits' })
   const poster = await posterPromise
   if (alive()) useFilm.setState({ poster: poster ?? 'none' })
 }
