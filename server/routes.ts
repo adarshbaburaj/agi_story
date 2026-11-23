@@ -64,7 +64,7 @@ const cast: Handler = async (b, t) => {
     index?: number
     total?: number
   }
-  const voices = voiceList()
+  const voices = await voiceList()
   // cast members are cast in parallel, so each gets its own slice of the voice list: no two share a voice
   const n = Math.min(Math.max(1, total), voices.length)
   const free = voices.filter((_, k) => k % n === index % n)

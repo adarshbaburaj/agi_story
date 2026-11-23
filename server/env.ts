@@ -1,6 +1,6 @@
 // Reads env lazily so the Vite dev middleware and Vercel both work.
 export const env = (k: string): string | undefined => {
-  const v = process.env[k]
+  const v = process.env[k] ?? process.env[k.toLowerCase()]
   return v && v.trim() ? v.trim() : undefined
 }
 

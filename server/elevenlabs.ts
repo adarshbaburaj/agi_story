@@ -16,17 +16,54 @@ const DEFAULT_VOICES: { id: string; desc: string }[] = [
 ]
 export const NARRATOR_VOICE = () => env('ELEVENLABS_NARRATOR_VOICE') ?? 'pNInz6obpgDQGcFmaJgB'
 
-export function voiceList() {
+let accountVoices: { id: string; desc: string }[] | null = null
+
+/** Voices available on this ElevenLabs account (cached), falling back to the premade list. */
+export async function voiceList(): Promise<{ id: string; desc: string }[]> {
   const custom = env('ELEVENLABS_VOICE_IDS')
-  if (!custom) return DEFAULT_VOICES
-  return custom.split(',').map((s) => {
-    const [id, ...d] = s.split(':')
-    return { id: id.trim(), desc: d.join(':').trim() || 'character voice' }
-  })
+  if (custom)
+    return custom.split(',').map((s) => {
+      const [id, ...d] = s.split(':')
+      return { id: id.trim(), desc: d.join(':').trim() || 'character voice' }
+    })
+  if (accountVoices) return accountVoices
+  const key = env('ELEVENLABS_API_KEY')
+  if (!key) return DEFAULT_VOICES
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': key } })
+    if (!res.ok) throw new Error(String(res.status))
+    const json = (await res.json()) as {
+      voices?: { voice_id: string; name: string; labels?: Record<string, string>; description?: string }[]
+    }
+    const narrator = NARRATOR_VOICE()
+    const list = (json.voices ?? [])
+      .filter((v) => v.voice_id !== narrator)
+      .map((v) => ({
+        id: v.voice_id,
+        desc: [v.name, ...Object.values(v.labels ?? {}), v.description ?? ''].filter(Boolean).join(', ').slice(0, 120),
+      }))
+    accountVoices = list.length >= 2 ? list : DEFAULT_VOICES
+  } catch {
+    accountVoices = DEFAULT_VOICES
+  }
+  return accountVoices
 }
 
 /** Returns base64 mp3. */
 export async function tts(text: string, voiceId: string): Promise<string> {
+  try {
+    return await ttsOnce(text, voiceId)
+  } catch (e) {
+    if (!/404|voice_not_found/.test((e as Error).message)) throw e
+    const list = await voiceList()
+    const alt = list[Math.abs(hash(voiceId)) % list.length]?.id ?? NARRATOR_VOICE()
+    return ttsOnce(text, alt)
+  }
+}
+
+const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)
+
+async function ttsOnce(text: string, voiceId: string): Promise<string> {
   const key = env('ELEVENLABS_API_KEY')
   if (!key) throw new Error('ELEVENLABS_API_KEY missing')
   const model = env('ELEVENLABS_MODEL') ?? 'eleven_flash_v2_5'
