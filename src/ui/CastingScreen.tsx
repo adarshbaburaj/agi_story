@@ -89,20 +89,9 @@ export function CastingScreen() {
             index: i,
             total: boxes.length,
           })
-          const ch: Character = { ...card, id: `obj_${i + 1}`, crop, position: SEATS[i], memory: [] }
+          const ch: Character = { ...card, id: `obj_${i + 1}`, crop, position: SEATS[i], memory: [], box: { x: b.x, y: b.y, w: b.w, h: b.h } }
           results[i] = ch
           useFilm.setState({ cast: results.filter(Boolean) as Character[], positions: Object.fromEntries(results.filter(Boolean).map((c) => [c!.id, c!.position])) })
-          setStatus((s) => ({ ...s, [i]: 'building' }))
-          const model = await api<Model3D>('model3d', { crop, object: ch.object, shape: ch.shape })
-          results[i] = { ...ch, model }
-          // every character gets a different skill card so the film has variety
-    const final = results.filter(Boolean) as Character[]
-    const used = new Set<Skill>()
-    for (const c of final) {
-      if (used.has(c.skill)) c.skill = SKILLS.find((s) => !used.has(s)) ?? c.skill
-      used.add(c.skill)
-    }
-    useFilm.setState({ cast: final })
           setStatus((s) => ({ ...s, [i]: 'done' }))
         } catch (e) {
           console.error(e)
@@ -110,9 +99,22 @@ export function CastingScreen() {
         }
       }),
     )
-    useFilm.setState({ cast: results.filter(Boolean) as Character[] })
+    // every character gets a different skill card so the film has variety
+    const final = results.filter(Boolean) as Character[]
+    const used = new Set<Skill>()
+    for (const c of final) {
+      if (used.has(c.skill)) c.skill = SKILLS.find((s) => !used.has(s)) ?? c.skill
+      used.add(c.skill)
+    }
+    useFilm.setState({ cast: final })
     await refreshMemory()
     setBusy(false)
+    // 3D bodies (for the 3D view) build in the background; the living photo doesn't need them
+    for (const c of final) {
+      api<Model3D>('model3d', { crop: c.crop, object: c.object, shape: c.shape })
+        .then((model) => useFilm.setState((st) => ({ cast: st.cast.map((x) => (x.id === c.id ? { ...x, model } : x)) })))
+        .catch(() => {})
+    }
   }
 
   if (screen === 'cast') return <CastIntro busy={busy} status={status} total={boxes.length} onBack={() => useFilm.setState({ screen: 'snap' })} />

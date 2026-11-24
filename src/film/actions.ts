@@ -92,7 +92,7 @@ export function applyAction(actor: Character, a: AgentAction) {
       break
   }
   separate(pos, a.action === 'push' ? a.target! : actor.id)
-  if (pos[actor.id][0] !== me[0] || pos[actor.id][1] !== me[1]) s.addFx({ kind: 'hop', actor: actor.id })
+  if (pos[actor.id][0] !== me[0] || pos[actor.id][1] !== me[1]) s.addFx({ kind: 'hop', actor: actor.id, target: a.target })
   useFilm.setState({ positions: pos, alliances, hidden })
 }
 

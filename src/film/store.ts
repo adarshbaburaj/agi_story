@@ -9,6 +9,9 @@ import type {
 } from '../../shared/types'
 
 export type Screen = 'snap' | 'cast' | 'film' | 'credits'
+export type ViewMode = 'photo' | '3d'
+export const initialView: ViewMode = new URLSearchParams(location.search).get('mode') === '3d' ? '3d' : 'photo'
+
 export type Phase = 'idle' | 'opening' | 'thinking' | 'acting' | 'ending' | 'done'
 
 export interface Bubble {
@@ -32,6 +35,7 @@ export interface WhisperLine {
 
 interface FilmState {
   screen: Screen
+  view: ViewMode
   photo: string | null
   backdrop: string | null
   cast: Character[]
@@ -68,6 +72,7 @@ let fxId = 1
 
 export const useFilm = create<FilmState>((set) => ({
   screen: 'snap',
+  view: initialView,
   photo: null,
   backdrop: null,
   cast: [],
@@ -130,3 +135,6 @@ export const useFilm = create<FilmState>((set) => ({
       shot: { type: 'wide', reason: 'start' },
     })),
 }))
+
+// handle for the demo-capture tooling (cinema mode recordings)
+;(window as unknown as { __film: typeof useFilm }).__film = useFilm

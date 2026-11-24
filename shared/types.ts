@@ -89,6 +89,8 @@ export interface Character {
   position: Vec2
   color: string
   crop: string // data URL
+  /** Where the object sits in the table photo (normalized 0-1), for the living-photo view. */
+  box?: { x: number; y: number; w: number; h: number }
   model?: Model3D
 }
 

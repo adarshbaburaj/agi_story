@@ -123,7 +123,7 @@ export function ObjectActor({ ch, index }: { ch: Character; index: number }) {
     <group ref={outer} position={[ch.position[0], 0, ch.position[1]]}>
       <group ref={body}>
         <group position={[0, h / 2, 0]}>
-          <Body model={model} />
+          <Body model={model} tint={ch.mood ? MOODS[ch.mood].color : undefined} />
           <Label model={model} tex={tex} front={front} />
           {model.parts.map((p, i) => (
             <Part key={i} part={p} />
@@ -183,9 +183,11 @@ export function ObjectActor({ ch, index }: { ch: Character; index: number }) {
   )
 }
 
-function Body({ model }: { model: Model3D }) {
+function Body({ model, tint }: { model: Model3D; tint?: string }) {
   const { shape, width, height, depth, color } = model.body
-  const mat = <meshStandardMaterial color={color} roughness={0.45} metalness={0.1} />
+  // glossy vinyl-toy finish in the character's mood colour (pastel), so every agent reads at a glance
+  const c = useMemo(() => (tint ? new THREE.Color(tint).lerp(new THREE.Color('#ffffff'), 0.28) : new THREE.Color(color)), [tint, color])
+  const mat = <meshPhysicalMaterial color={c} roughness={0.32} metalness={0} clearcoat={0.9} clearcoatRoughness={0.18} />
   if (shape === 'cylinder')
     return (
       <mesh castShadow receiveShadow>

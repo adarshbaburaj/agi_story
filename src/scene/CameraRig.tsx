@@ -24,11 +24,12 @@ export function CameraRig() {
       const s = useFilm.getState()
       const id = s.speakingId ?? s.focusId
       const p = id ? livePos[id] : undefined
-      const radius = s.phase === 'opening' ? 6.2 : type === 'wide' ? 4.2 : type === 'orbit' ? 3.2 : type === 'over_shoulder' ? 2.6 : 2.2
+      const radius = s.phase === 'opening' ? 7 : type === 'wide' ? 5.6 : type === 'orbit' ? 4.6 : type === 'over_shoulder' ? 4 : 3.5
       // sweep back and forth in front of the cast (faces and photo labels look toward +z), never behind them
       const a = Math.sin(t * 0.07) * 0.6 + (s.phase === 'done' ? Math.sin(t * 0.25) * 0.25 : 0)
-      const cx = p ? p.x : 0
-      const cz = p ? p.z : 0
+      // frame the speaker but keep the cast in shot: aim between the speaker and the table centre
+      const cx = p ? p.x * 0.6 : 0
+      const cz = p ? p.z * 0.6 : 0
       wantPos.set(cx + Math.sin(a) * radius * 0.55, (s.phase === 'opening' ? 3.4 : 1.0) + radius * 0.22, cz + Math.cos(a) * radius * 0.85 + 0.4)
       wantLook.set(cx, p ? 0.75 : 0.3, cz)
       camera.position.lerp(wantPos, 0.018)

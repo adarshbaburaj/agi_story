@@ -14,10 +14,11 @@ export function Stage() {
   const backdrop = useFilm((s) => s.backdrop)
   return (
     <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 3.3, 5.7], fov: 40 }} gl={{ antialias: true }}>
-      <color attach="background" args={['#0d0907']} />
-      <fog attach="fog" args={['#0d0907', 7, 15]} />
-      <ambientLight intensity={0.35} />
-      <hemisphereLight args={['#ffd9a8', '#1a1020', 0.5]} />
+      <color attach="background" args={['#efe4d6']} />
+      <fog attach="fog" args={['#efe4d6', 11, 26]} />
+      <ambientLight intensity={0.55} />
+      <hemisphereLight args={['#fff4e6', '#c9b8a8', 1.1]} />
+      <directionalLight position={[-4, 6, 5]} intensity={1.6} color="#fff8ee" castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0003} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} />
       <spotLight
         position={[2.3, 4.4, -1.2]}
         angle={0.8}
@@ -28,7 +29,8 @@ export function Stage() {
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0004}
       />
-      <pointLight position={[-3, 2.2, 3]} intensity={8} color="#7aa7ff" />
+      <pointLight position={[-3, 2.2, 3]} intensity={6} color="#ffe2c4" />
+      <pointLight position={[0, 2.5, -3.5]} intensity={10} color="#ffffff" />
       <Suspense fallback={null}>
         <Backdrop url={backdrop} />
         <Table />
@@ -43,9 +45,9 @@ export function Stage() {
       </Suspense>
       <CameraRig />
       <EffectComposer multisampling={0}>
-        <DepthOfField target={focusTarget} worldFocusRange={3.2} bokehScale={2.2} />
-        <Bloom luminanceThreshold={0.85} intensity={0.9} mipmapBlur />
-        <Vignette offset={0.25} darkness={0.75} />
+        <DepthOfField target={focusTarget} worldFocusRange={4.5} bokehScale={1.6} />
+        <Bloom luminanceThreshold={1.1} intensity={0.6} mipmapBlur />
+        <Vignette offset={0.35} darkness={0.35} />
       </EffectComposer>
     </Canvas>
   )

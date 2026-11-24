@@ -10,7 +10,7 @@ export function Table() {
     <group>
       <mesh position={[0, -0.12, 0]} receiveShadow castShadow>
         <boxGeometry args={[6.2, 0.24, 3.8]} />
-        <meshStandardMaterial map={tex} roughness={0.55} metalness={0.05} />
+        <meshStandardMaterial map={tex} color="#e9c9a3" roughness={0.5} metalness={0.02} />
       </mesh>
       {[
         [-2.8, -1.6],
@@ -23,9 +23,14 @@ export function Table() {
           <meshStandardMaterial color="#3e2716" />
         </mesh>
       ))}
+      {/* seamless studio sweep: floor curving up into the back wall */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.6, 0]} receiveShadow>
-        <planeGeometry args={[40, 40]} />
-        <meshStandardMaterial color="#120c0a" />
+        <planeGeometry args={[60, 60]} />
+        <meshStandardMaterial color="#e8dccd" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, 4, -7]} receiveShadow>
+        <planeGeometry args={[60, 20]} />
+        <meshStandardMaterial color="#efe4d6" roughness={0.95} />
       </mesh>
     </group>
   )
@@ -101,9 +106,15 @@ export function Backdrop({ url }: { url: string | null }) {
   const tex = useMemo(() => (url ? textureFromDataUrl(url) : null), [url])
   if (!tex) return null
   return (
-    <mesh position={[0, 2.2, -5.5]}>
-      <planeGeometry args={[14, 8]} />
-      <meshBasicMaterial map={tex} color="#6d5a52" toneMapped={false} />
-    </mesh>
+    <group position={[-2.2, 2.6, -6.9]} rotation={[0, 0.12, 0]}>
+      <mesh position={[0, 0, -0.02]} castShadow>
+        <boxGeometry args={[3.5, 2.1, 0.06]} />
+        <meshStandardMaterial color="#fbf7f1" roughness={0.6} />
+      </mesh>
+      <mesh>
+        <planeGeometry args={[3.2, 1.8]} />
+        <meshStandardMaterial map={tex} roughness={0.7} />
+      </mesh>
+    </group>
   )
 }
